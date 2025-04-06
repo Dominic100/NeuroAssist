@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../routes/route_names.dart';
+import 'package:neuroassist/screens/ToDo/todo_lists_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -205,6 +206,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: Icons.leaderboard,
                       label: 'Leaderboards',
                       onPressed: () => Navigator.pushNamed(context, RouteNames.leaderboard),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    _buildFeatureButton(
+                      context,
+                      icon: Icons.checklist,
+                      label: 'To-Do Lists',
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => TodoListsScreen()),
+                      ),
                     ),
                   ],
                 ),

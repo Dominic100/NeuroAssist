@@ -50,8 +50,11 @@ dependencies:
   firebase_auth: ^4.16.0
   cloud_firestore: ^4.15.6
   
-  # Optional for reCAPTCHA
-  # google_recaptcha_v3: ^0.1.0
+  # Add for ToDo List feature
+  flutter_local_notifications: ^14.1.1
+  timezone: ^0.9.2
+  intl: ^0.19.0 # For date formatting
+  uuid: ^4.3.3 # For generating unique IDs
 
 dev_dependencies:
   flutter_test:

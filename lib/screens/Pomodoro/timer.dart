@@ -775,22 +775,84 @@ class _TimerState extends State<MyTimer> with WidgetsBindingObserver {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          setState(() {
-            if (_isRunning) {
-              _stopTimer();
-            } else {
-              _startTimer();
-            }
-          });
-        },
-        shape: const CircleBorder(),
-        backgroundColor: Colors.black,
-        mini: false,
-        child: _isRunning
-            ? const Icon(Icons.pause, color: Colors.greenAccent)
-            : const Icon(Icons.play_arrow, color: Colors.greenAccent),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Exit button (left side)
+            FloatingActionButton(
+              onPressed: () {
+                if (_isRunning) {
+                  // Show confirmation dialog if timer is running
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        backgroundColor: Colors.grey[900],
+                        title: Text(
+                          'Exit to Home?',
+                          style: TextStyle(color: Colors.greenAccent),
+                        ),
+                        content: Text(
+                          'Your timer is still running. Are you sure you want to exit to home? Your progress will be saved.',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        actions: [
+                          TextButton(
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                          TextButton(
+                            child: Text(
+                              'Exit',
+                              style: TextStyle(color: Colors.greenAccent),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).pop(); // Close dialog
+                              // Navigate to home (popping until home)
+                              Navigator.of(context).popUntil((route) => route.isFirst);
+                            },
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                } else {
+                  // Navigate to home directly if timer is not running
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                }
+              },
+              heroTag: 'exitBtn',
+              backgroundColor: Colors.black,
+              child: const Icon(Icons.home, color: Colors.greenAccent),
+            ),
+            
+            // Play/Pause button (right side - original position)
+            FloatingActionButton(
+              onPressed: () {
+                setState(() {
+                  if (_isRunning) {
+                    _stopTimer();
+                  } else {
+                    _startTimer();
+                  }
+                });
+              },
+              heroTag: 'playPauseBtn',
+              backgroundColor: Colors.black,
+              child: _isRunning
+                  ? const Icon(Icons.pause, color: Colors.greenAccent)
+                  : const Icon(Icons.play_arrow, color: Colors.greenAccent),
+            ),
+          ],
+        ),
       ),
     );
   }
