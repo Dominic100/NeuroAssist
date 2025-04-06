@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "593230121635",
+    "project_id": "neuroassist-b6634",
+    "storage_bucket": "neuroassist-b6634.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:593230121635:android:314995a6482a7130368d16",
+        "android_client_info": {
+          "package_name": "com.example.neuroassist"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHhomtld-IvBbsaLh0SE1xLC37Tv7jx1M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
