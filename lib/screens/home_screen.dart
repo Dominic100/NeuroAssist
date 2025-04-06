@@ -25,15 +25,36 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     
     try {
+      // Get current user
       final user = FirebaseAuth.instance.currentUser;
+      
       if (user != null) {
-        // Refresh user to get the latest data
-        await user.reload();
-        setState(() {
-          userEmail = user.email;
-          isLoading = false;
-        });
+        // User is signed in
+        try {
+          // Refresh user to get the latest data
+          await user.reload();
+          
+          // Get the refreshed user object
+          final refreshedUser = FirebaseAuth.instance.currentUser;
+          
+          setState(() {
+            // Use the email from the refreshed user
+            userEmail = refreshedUser?.email;
+            isLoading = false;
+          });
+          
+          print('User data loaded: $userEmail');
+        } catch (reloadError) {
+          print('Error reloading user: $reloadError');
+          // Still use available data even if reload fails
+          setState(() {
+            userEmail = user.email;
+            isLoading = false;
+          });
+        }
       } else {
+        // No user is signed in
+        print('No user signed in, using Guest User');
         setState(() {
           userEmail = 'Guest User';
           isLoading = false;
@@ -65,6 +86,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Force a quick check of auth state when building
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final displayEmail = currentUser?.email ?? userEmail ?? 'Guest User';
+    
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -83,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Center(
                 child: Text(
-                  userEmail ?? 'Guest User',
+                  displayEmail,
                   style: TextStyle(
                     color: Colors.greenAccent,
                     fontSize: 14,
@@ -127,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           SizedBox(height: 5),
                           Text(
-                            userEmail ?? 'Guest User',
+                            displayEmail,
                             style: TextStyle(
                               color: Colors.greenAccent,
                               fontSize: 20,
@@ -171,6 +196,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: Icons.timer,
                       label: 'Pomodoro Timer',
                       onPressed: () => Navigator.pushNamed(context, RouteNames.habit),
+                    ),
+
+                    const SizedBox(height: 16),
+                    
+                    _buildFeatureButton(
+                      context,
+                      icon: Icons.leaderboard,
+                      label: 'Leaderboards',
+                      onPressed: () => Navigator.pushNamed(context, RouteNames.leaderboard),
                     ),
                   ],
                 ),

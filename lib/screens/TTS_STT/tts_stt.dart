@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'dart:ui' as ui;
+import 'package:firebase_auth/firebase_auth.dart';
 
 class TTSSTTHome extends StatefulWidget {
   @override
@@ -35,6 +36,10 @@ class _TTSSTTHomeState extends State<TTSSTTHome> with WidgetsBindingObserver {
   bool isListening = false;
   bool isSpeaking = false;
   bool isProcessing = false;
+  
+  // User data
+  String? userEmail;
+  bool isLoadingUser = true;
 
   @override
   void initState() {
@@ -42,7 +47,36 @@ class _TTSSTTHomeState extends State<TTSSTTHome> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     
     // Initialize in sequence to ensure proper initialization
+    _loadUserData();
     _initTtsAndRecognizer();
+  }
+  
+  // Load user data
+  Future<void> _loadUserData() async {
+    setState(() {
+      isLoadingUser = true;
+    });
+    
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        setState(() {
+          userEmail = user.email;
+          isLoadingUser = false;
+        });
+      } else {
+        setState(() {
+          userEmail = 'Guest User';
+          isLoadingUser = false;
+        });
+      }
+    } catch (e) {
+      print('Error getting user data: $e');
+      setState(() {
+        userEmail = 'Guest User';
+        isLoadingUser = false;
+      });
+    }
   }
 
   Future<void> _initTtsAndRecognizer() async {
@@ -454,15 +488,36 @@ class _TTSSTTHomeState extends State<TTSSTTHome> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text("TTS & STT App"),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+        backgroundColor: Colors.black,
+        title: Text(
+          "Text & Speech Tools",
+          style: TextStyle(
+            color: Colors.greenAccent,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        iconTheme: IconThemeData(color: Colors.greenAccent),
+        actions: [
+          // User email display
+          if (!isLoadingUser)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Center(
+                child: Text(
+                  userEmail ?? 'Guest User',
+                  style: TextStyle(
+                    color: Colors.greenAccent,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: isProcessing 
-          ? Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: Colors.greenAccent))
           : Padding(
               padding: const EdgeInsets.all(16.0),
               child: SingleChildScrollView(
@@ -470,17 +525,34 @@ class _TTSSTTHomeState extends State<TTSSTTHome> with WidgetsBindingObserver {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Live Image Recognition Section
-                    Text("Live Camera Text Recognition", 
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
+                    Text(
+                      "Live Camera Text Recognition",
+                      style: TextStyle(
+                        fontSize: 18, 
+                        fontWeight: FontWeight.bold,
+                        color: Colors.greenAccent,
+                      )
+                    ),
+                    SizedBox(height: 12),
                     
                     // Camera toggle button
-                    ElevatedButton.icon(
-                      onPressed: _toggleCamera,
-                      icon: Icon(isCameraActive ? Icons.stop : Icons.camera_alt),
-                      label: Text(isCameraActive ? "Stop Camera" : "Start Camera"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isCameraActive ? Colors.red : null,
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _toggleCamera,
+                        icon: Icon(isCameraActive ? Icons.stop : Icons.camera_alt),
+                        label: Text(isCameraActive ? "Stop Camera" : "Start Camera"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isCameraActive ? Colors.redAccent : Colors.grey[900],
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: BorderSide(
+                              color: isCameraActive ? Colors.redAccent : Colors.greenAccent.withOpacity(0.5),
+                            ),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                        ),
                       ),
                     ),
                     SizedBox(height: 16),
@@ -491,142 +563,250 @@ class _TTSSTTHomeState extends State<TTSSTTHome> with WidgetsBindingObserver {
                         height: 250,
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(8.0),
+                          border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
+                          borderRadius: BorderRadius.circular(10.0),
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8.0),
+                          borderRadius: BorderRadius.circular(9.0),
                           child: CameraPreview(cameraController!),
                         ),
                       ),
                     
                     if (isCameraActive && lastRecognizedImageText.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        padding: const EdgeInsets.symmetric(vertical: 12.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("Last Recognized Text:", 
-                              style: TextStyle(fontWeight: FontWeight.w500)),
-                            SizedBox(height: 4),
+                            Text(
+                              "Last Recognized Text:", 
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                color: Colors.greenAccent,
+                              )
+                            ),
+                            SizedBox(height: 8),
                             Container(
-                              padding: EdgeInsets.all(8),
+                              padding: EdgeInsets.all(12),
+                              width: double.infinity,
                               decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(4),
+                                color: Colors.grey[900],
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
                               ),
-                              child: Text(lastRecognizedImageText),
+                              child: Text(
+                                lastRecognizedImageText,
+                                style: TextStyle(color: Colors.white),
+                              ),
                             ),
                           ],
                         ),
                       ),
                     
-                    Divider(height: 32),
+                    Divider(
+                      height: 40,
+                      color: Colors.greenAccent.withOpacity(0.3),
+                      thickness: 1,
+                    ),
 
                     // Text-to-Speech Section
-                    Text("Text-to-Speech", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
+                    Text(
+                      "Text-to-Speech",
+                      style: TextStyle(
+                        fontSize: 18, 
+                        fontWeight: FontWeight.bold,
+                        color: Colors.greenAccent,
+                      )
+                    ),
+                    SizedBox(height: 12),
                     TextField(
                       controller: textController,
+                      style: TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        hintText: "Enter text...",
-                        border: OutlineInputBorder(),
+                        hintText: "Enter text to speak...",
+                        hintStyle: TextStyle(color: Colors.grey),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.greenAccent),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.greenAccent.withOpacity(0.5)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.greenAccent),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[900],
                       ),
                       maxLines: 5,
                       minLines: 3,
                     ),
-                    SizedBox(height: 8),
+                    SizedBox(height: 12),
                     Row(
                       children: [
-                        ElevatedButton.icon(
-                          onPressed: () => speakText(textController.text),
-                          icon: Icon(isSpeaking ? Icons.stop : Icons.volume_up),
-                          label: Text(isSpeaking ? "Stop" : "Speak"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isSpeaking ? Colors.red : null,
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => speakText(textController.text),
+                            icon: Icon(isSpeaking ? Icons.stop : Icons.volume_up),
+                            label: Text(isSpeaking ? "Stop" : "Speak"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isSpeaking ? Colors.redAccent : Colors.grey[900],
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: BorderSide(
+                                  color: isSpeaking ? Colors.redAccent : Colors.greenAccent.withOpacity(0.5),
+                                ),
+                              ),
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                            ),
                           ),
                         ),
                         SizedBox(width: 10),
-                        ElevatedButton.icon(
-                          onPressed: pickTextFile,
-                          icon: Icon(Icons.upload_file),
-                          label: Text("Upload Text"),
-                        ),
-                        SizedBox(width: 10),
-                        IconButton(
-                          onPressed: textController.text.isNotEmpty
-                              ? () => textController.clear()
-                              : null,
-                          icon: Icon(Icons.clear),
-                          tooltip: "Clear text",
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: pickTextFile,
+                            icon: Icon(Icons.upload_file),
+                            label: Text("Upload Text"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[900],
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: BorderSide(color: Colors.greenAccent.withOpacity(0.5)),
+                              ),
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 24),
-                    
-                    // Speech-to-Text Section
-                    Text("Speech-to-Text", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        ElevatedButton.icon(
-                          onPressed: toggleRecording,
-                          icon: Icon(isListening ? Icons.stop : Icons.mic),
-                          label: Text(isListening ? "Stop Recording" : "Start Recording"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isListening ? Colors.red : null,
-                          ),
+                        TextButton.icon(
+                          onPressed: textController.text.isNotEmpty
+                              ? () => textController.clear()
+                              : null,
+                          icon: Icon(Icons.clear, color: Colors.redAccent),
+                          label: Text("Clear", style: TextStyle(color: Colors.redAccent)),
                         ),
                       ],
+                    ),
+                    
+                    Divider(
+                      height: 40,
+                      color: Colors.greenAccent.withOpacity(0.3),
+                      thickness: 1,
+                    ),
+                    
+                    // Speech-to-Text Section
+                    Text(
+                      "Speech-to-Text", 
+                      style: TextStyle(
+                        fontSize: 18, 
+                        fontWeight: FontWeight.bold,
+                        color: Colors.greenAccent,
+                      )
+                    ),
+                    SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: toggleRecording,
+                        icon: Icon(isListening ? Icons.stop : Icons.mic),
+                        label: Text(isListening ? "Stop Recording" : "Start Recording"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isListening ? Colors.redAccent : Colors.grey[900],
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: BorderSide(
+                              color: isListening ? Colors.redAccent : Colors.greenAccent.withOpacity(0.5),
+                            ),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
                     ),
                     
                     SizedBox(height: 16),
                     Row(
                       children: [
-                        Text("Recognized Text:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text(
+                          "Recognized Text:", 
+                          style: TextStyle(
+                            fontSize: 16, 
+                            fontWeight: FontWeight.bold,
+                            color: Colors.greenAccent,
+                          )
+                        ),
                         Spacer(),
-                        IconButton(
+                        TextButton.icon(
                           onPressed: recognizedText.isNotEmpty
                               ? () {
                                   setState(() {
                                     textController.text = recognizedText;
                                   });
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Text copied to input field')),
+                                    SnackBar(
+                                      content: Text('Text copied to input field'),
+                                      backgroundColor: Colors.green,
+                                    ),
                                   );
                                 }
                               : null,
-                          icon: Icon(Icons.copy),
-                          tooltip: "Use as input text",
+                          icon: Icon(Icons.copy, color: Colors.greenAccent),
+                          label: Text("Use as input", style: TextStyle(color: Colors.greenAccent)),
+                          style: ButtonStyle(
+                            overlayColor: MaterialStateProperty.all(Colors.greenAccent.withOpacity(0.1)),
+                          ),
                         ),
                       ],
                     ),
                     
                     Container(
-                      padding: EdgeInsets.all(10),
+                      padding: EdgeInsets.all(12),
                       width: double.infinity,
                       height: 120,
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.grey[900],
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
                       ),
                       child: SingleChildScrollView(
-                        child: Text(recognizedText),
+                        child: Text(
+                          recognizedText,
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
                     ),
                     
                     if (isListening)
                       Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Row(
-                          children: [
-                            Icon(Icons.mic, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text("Listening...", style: TextStyle(
-                              color: Colors.red,
-                              fontStyle: FontStyle.italic
-                            )),
-                          ],
+                        padding: const EdgeInsets.symmetric(vertical: 12.0),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.mic, color: Colors.redAccent),
+                              SizedBox(width: 8),
+                              Text(
+                                "Listening...", 
+                                style: TextStyle(
+                                  color: Colors.redAccent,
+                                  fontWeight: FontWeight.bold,
+                                )
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                   ],

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:neuroassist/services/pomodoro_service.dart';
 
 class MyTimer extends StatefulWidget {
   final String breakTime;
@@ -10,6 +13,7 @@ class MyTimer extends StatefulWidget {
   final bool customMode;
   final List<int> customSessionMinutes;
   final List<int> customBreakMinutes;
+  final String sessionId; // Add Firestore session ID parameter
 
   const MyTimer({
     Key? key, 
@@ -19,6 +23,7 @@ class MyTimer extends StatefulWidget {
     this.customMode = false,
     this.customSessionMinutes = const [],
     this.customBreakMinutes = const [],
+    this.sessionId = '', // Default empty string
   }) : super(key: key);
 
   @override
@@ -47,11 +52,21 @@ class _TimerState extends State<MyTimer> with WidgetsBindingObserver {
   bool _isBreakTime = false; // Whether we're in a break or work session
   int _totalSegments = 0; // Total sessions + breaks
   String _currentSegmentName = "Session 1";
+  
+  // User data
+  String? userEmail;
+  bool isLoadingUser = true;
+  
+  // Track current segment start time for Firestore
+  DateTime? _currentSegmentStart;
 
   @override
   void initState(){
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
+    // Load user data
+    _loadUserData();
     
     // Check for custom mode
     _isCustomMode = widget.customMode;
@@ -93,6 +108,34 @@ class _TimerState extends State<MyTimer> with WidgetsBindingObserver {
     }
     
     _getPrefs();
+  }
+  
+  // Load user data
+  Future<void> _loadUserData() async {
+    setState(() {
+      isLoadingUser = true;
+    });
+    
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        setState(() {
+          userEmail = user.email;
+          isLoadingUser = false;
+        });
+      } else {
+        setState(() {
+          userEmail = 'Guest User';
+          isLoadingUser = false;
+        });
+      }
+    } catch (e) {
+      print('Error getting user data: $e');
+      setState(() {
+        userEmail = 'Guest User';
+        isLoadingUser = false;
+      });
+    }
   }
   
   void _showAlert(String title, String body) {
@@ -228,6 +271,50 @@ class _TimerState extends State<MyTimer> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    // If a session is active but user is leaving, mark it as incomplete
+    if (widget.sessionId.isNotEmpty && _isRunning) {
+      // Record the last segment if there was one in progress
+      if (_currentSegmentStart != null) {
+        final now = DateTime.now();
+        final segmentType = _isCustomMode ? 
+                         (_isBreakTime ? 'break' : 'work') : 
+                         (_timerCount % 2 == 1 ? 'break' : 'work');
+        
+        // Calculate which session or break we're on and its planned duration
+        int plannedDuration;
+        if (_isCustomMode) {
+          int index = _isBreakTime ? 
+              _currentSegmentIndex ~/ 2 - 1 : // For breaks
+              (_currentSegmentIndex ~/ 2);    // For sessions
+              
+          plannedDuration = _isBreakTime ? 
+              (index < _customBreakMinutes.length ? _customBreakMinutes[index] : 5) : 
+              (index < _customSessionMinutes.length ? _customSessionMinutes[index] : 25);
+        } else {
+          plannedDuration = segmentType == 'work' ? _timeInt : _break.inMinutes;
+        }
+        
+        // Calculate actual duration
+        final actualDuration = now.difference(_currentSegmentStart!).inMinutes;
+        
+        // Log this segment to Firestore
+        PomodoroSession.addSessionSegment(
+          sessionId: widget.sessionId,
+          type: segmentType,
+          durationPlanned: plannedDuration,
+          durationActual: actualDuration < 1 ? 1 : actualDuration, // Minimum 1 min
+          startTime: _currentSegmentStart!,
+          endTime: now,
+        );
+      }
+      
+      // Mark the session as incomplete
+      PomodoroSession.completeSession(
+        sessionId: widget.sessionId,
+        completed: false,
+      );
+    }
+    
     _timer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -247,6 +334,9 @@ class _TimerState extends State<MyTimer> with WidgetsBindingObserver {
       });
     });
     
+    // Set the segment start time
+    _currentSegmentStart = DateTime.now();
+    
     // Schedule end time
     _scheduleEndTime();
     
@@ -255,6 +345,47 @@ class _TimerState extends State<MyTimer> with WidgetsBindingObserver {
   }
   
   void _moveToNextSegment() {
+    // Record this segment completion if there was a start time
+    if (_currentSegmentStart != null && widget.sessionId.isNotEmpty) {
+      final now = DateTime.now();
+      final segmentType = _isBreakTime ? 'break' : 'work';
+      
+      // Fix the index calculation for breaks
+      int index;
+      if (_isBreakTime) {
+        // Safer calculation for break index
+        index = (_currentSegmentIndex / 2).floor() - 1;
+        if (index < 0) index = 0;  // Ensure index is never negative
+      } else {
+        index = (_currentSegmentIndex ~/ 2);  // Original calculation for work sessions
+      }
+      
+      // Get planned duration with safer index access
+      int plannedDuration;
+      if (_isBreakTime) {
+        plannedDuration = (index >= 0 && index < _customBreakMinutes.length) 
+            ? _customBreakMinutes[index] 
+            : 5;  // Default to 5 minutes if out of bounds
+      } else {
+        plannedDuration = (index < _customSessionMinutes.length) 
+            ? _customSessionMinutes[index] 
+            : 25;  // Default to 25 minutes if out of bounds
+      }
+      
+      // Calculate actual duration (could be less than planned if user left early)
+      final actualDuration = now.difference(_currentSegmentStart!).inMinutes;
+      
+      // Log this segment to Firestore
+      PomodoroSession.addSessionSegment(
+        sessionId: widget.sessionId,
+        type: segmentType,
+        durationPlanned: plannedDuration,
+        durationActual: actualDuration < 1 ? 1 : actualDuration, // Minimum 1 min
+        startTime: _currentSegmentStart!,
+        endTime: now,
+      );
+    }
+    
     // For custom mode
     _currentSegmentIndex++;
     
@@ -271,6 +402,15 @@ class _TimerState extends State<MyTimer> with WidgetsBindingObserver {
       _storeTime();
       _stopTimer();
       _isRunning = false;
+      
+      // Mark session as completed in Firestore
+      if (widget.sessionId.isNotEmpty) {
+        PomodoroSession.completeSession(
+          sessionId: widget.sessionId,
+          completed: true,
+        );
+      }
+      
       Navigator.pop(context);
       return;
     }
@@ -279,9 +419,9 @@ class _TimerState extends State<MyTimer> with WidgetsBindingObserver {
     _isBreakTime = !_isBreakTime;
     
     if (_isBreakTime) {
-      // Calculate which break we're on
-      int breakIndex = _currentSegmentIndex ~/ 2;
-      if (breakIndex < _customBreakMinutes.length) {
+      // Calculate which break we're on - fixing the calculation to prevent negative index
+      int breakIndex = (_currentSegmentIndex / 2).floor();
+      if (breakIndex >= 0 && breakIndex < _customBreakMinutes.length) {
         _time = Duration(minutes: _customBreakMinutes[breakIndex]);
         _currMax = _customBreakMinutes[breakIndex];
         _currentSegmentName = "Break ${breakIndex + 1}";
@@ -308,12 +448,15 @@ class _TimerState extends State<MyTimer> with WidgetsBindingObserver {
       }
     }
     
-    // CHANGE HERE: No longer stop the timer or reset running state
+    // No longer stop the timer or reset running state
     // Instead, just continue with the next session/break automatically
     // Only briefly pause to notify the user
     setState(() {
       // Brief pause to notify user of session change
       _stopTimer();
+      
+      // Update segment start time
+      _currentSegmentStart = DateTime.now();
       
       // Restart the timer after a short delay
       Future.delayed(Duration(milliseconds: 500), () {
@@ -327,6 +470,26 @@ class _TimerState extends State<MyTimer> with WidgetsBindingObserver {
   }
   
   void _standardModeNextSegment() {
+    // Record this segment completion if there was a start time
+    if (_currentSegmentStart != null && widget.sessionId.isNotEmpty) {
+      final now = DateTime.now();
+      final segmentType = _timerCount % 2 == 0 ? 'work' : 'break';
+      final plannedDuration = segmentType == 'work' ? _timeInt : _break.inMinutes;
+      
+      // Calculate actual duration (could be less than planned if user left early)
+      final actualDuration = now.difference(_currentSegmentStart!).inMinutes;
+      
+      // Log this segment to Firestore
+      PomodoroSession.addSessionSegment(
+        sessionId: widget.sessionId,
+        type: segmentType,
+        durationPlanned: plannedDuration,
+        durationActual: actualDuration < 1 ? 1 : actualDuration, // Minimum 1 min
+        startTime: _currentSegmentStart!,
+        endTime: now,
+      );
+    }
+    
     if(_timerCount % 2 == 1) {
       _time = Duration(minutes: _timeInt);
       _currMax = _timeInt;
@@ -362,12 +525,24 @@ class _TimerState extends State<MyTimer> with WidgetsBindingObserver {
       _storeTime();
       _stopTimer();
       _isRunning = false;
+      
+      // Mark session as completed in Firestore
+      if (widget.sessionId.isNotEmpty) {
+        PomodoroSession.completeSession(
+          sessionId: widget.sessionId,
+          completed: true,
+        );
+      }
+      
       Navigator.pop(context);
     } else {
-      // CHANGE HERE: Similar to custom mode - auto-continue instead of stopping
+      // Similar to custom mode - auto-continue instead of stopping
       setState(() {
         // Brief pause to notify user of session change
         _stopTimer();
+        
+        // Update segment start time
+        _currentSegmentStart = DateTime.now();
         
         // Restart the timer after a short delay
         Future.delayed(Duration(milliseconds: 500), () {
@@ -446,6 +621,9 @@ class _TimerState extends State<MyTimer> with WidgetsBindingObserver {
       }
       
       _isRunning = false;
+      
+      // Reset segment start time
+      _currentSegmentStart = null;
     });
   }
 
@@ -465,6 +643,54 @@ class _TimerState extends State<MyTimer> with WidgetsBindingObserver {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
+        automaticallyImplyLeading: false, // Remove default back button
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.greenAccent),
+          onPressed: () {
+            if (_isRunning) {
+              // Show a confirmation dialog since timer is running
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    backgroundColor: Colors.grey[900],
+                    title: Text(
+                      'Exit Session?',
+                      style: TextStyle(color: Colors.greenAccent),
+                    ),
+                    content: Text(
+                      'Your timer is still running. Are you sure you want to exit? Your progress will be saved.',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    actions: [
+                      TextButton(
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                      TextButton(
+                        child: Text(
+                          'Exit',
+                          style: TextStyle(color: Colors.greenAccent),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Close dialog
+                          Navigator.of(context).pop(); // Exit timer screen
+                        },
+                      ),
+                    ],
+                  );
+                },
+              );
+            } else {
+              Navigator.of(context).pop();
+            }
+          },
+        ),
         centerTitle: false,
         backgroundColor: Colors.black,
         title: Text.rich(
@@ -477,8 +703,22 @@ class _TimerState extends State<MyTimer> with WidgetsBindingObserver {
             ),
           ),
         ),
-
         actions: [
+          // User email display
+          if (!isLoadingUser)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Center(
+                child: Text(
+                  userEmail ?? 'Guest User',
+                  style: TextStyle(
+                    color: Colors.greenAccent,
+                    fontSize: 14,
+                    fontFamily: 'Arial',
+                  ),
+                ),
+              ),
+            ),
           IconButton(
             padding: const EdgeInsets.only(right: 20.0),
             icon: const Icon(Icons.restart_alt, color: Colors.greenAccent, size: 30),

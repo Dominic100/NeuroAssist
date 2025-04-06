@@ -7,4 +7,5 @@ class RouteNames {
   static const String habit = '/habit';
   // static const String login = '/login';
   static const String register = '/register';
+  static const String leaderboard = '/leaderboard';
 }

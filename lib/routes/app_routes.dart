@@ -6,6 +6,7 @@ import '../screens/profile_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/TTS_STT/tts_stt.dart';
 import '../screens/Pomodoro/habit.dart';
+import '../screens/Leaderboard/leaderboard_screen.dart';
 import 'route_names.dart';
 
 class AppRoutes {
@@ -17,5 +18,6 @@ class AppRoutes {
     RouteNames.settings: (context) => const SettingsScreen(),
     RouteNames.ttsStt: (context) => TTSSTTHome(),
     RouteNames.habit: (context) => const Habit(),
+    RouteNames.leaderboard: (context) => const LeaderboardScreen(),
   };
 }

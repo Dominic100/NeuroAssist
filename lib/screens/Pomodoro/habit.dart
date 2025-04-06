@@ -1,6 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:neuroassist/screens/Pomodoro/timer.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:neuroassist/services/pomodoro_service.dart'; // Import the service class
 
 class Habit extends StatefulWidget {
   const Habit({Key? key}) : super(key: key);
@@ -13,9 +16,9 @@ class _HabitState extends State<Habit> {
   bool _useStandardMode = true; // Toggle between standard and custom modes
   
   // Controllers for standard mode
-  final TextEditingController _workController = TextEditingController();
-  final TextEditingController _breakController = TextEditingController();
-  final TextEditingController _sessionController = TextEditingController();
+  final TextEditingController _workController = TextEditingController(text: '25');
+  final TextEditingController _breakController = TextEditingController(text: '5');
+  final TextEditingController _sessionController = TextEditingController(text: '4');
   
   // Custom mode: List of session and break durations
   List<int> _customSessionMinutes = [25]; // Default first session is 25 min
@@ -24,6 +27,44 @@ class _HabitState extends State<Habit> {
   // Controllers for custom mode input fields
   List<TextEditingController> _sessionControllers = [TextEditingController(text: '25')];
   List<TextEditingController> _breakControllers = [];
+  
+  // User data
+  String? userEmail;
+  bool isLoadingUser = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  // Load user data
+  Future<void> _loadUserData() async {
+    setState(() {
+      isLoadingUser = true;
+    });
+    
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        setState(() {
+          userEmail = user.email;
+          isLoadingUser = false;
+        });
+      } else {
+        setState(() {
+          userEmail = 'Guest User';
+          isLoadingUser = false;
+        });
+      }
+    } catch (e) {
+      print('Error getting user data: $e');
+      setState(() {
+        userEmail = 'Guest User';
+        isLoadingUser = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -221,7 +262,11 @@ class _HabitState extends State<Habit> {
         resizeToAvoidBottomInset: false,
         backgroundColor: Colors.black,
         appBar: AppBar(
-          automaticallyImplyLeading: true,
+          automaticallyImplyLeading: false, // Remove default back button
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.greenAccent),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
           centerTitle: false,
           backgroundColor: Colors.black,
           title: Text.rich(
@@ -234,6 +279,22 @@ class _HabitState extends State<Habit> {
               ),
             ),
           ),
+          actions: [
+            // User email display
+            if (!isLoadingUser)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Center(
+                  child: Text(
+                    userEmail ?? 'Guest User',
+                    style: TextStyle(
+                      color: Colors.greenAccent,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
         body: SingleChildScrollView(
           child: Container(
@@ -396,9 +457,82 @@ class _HabitState extends State<Habit> {
                 SizedBox(height: 40),
                 Center(
                   child: TextButton(
-                    onPressed: () {
+                    onPressed: () async {
+                      // Validate inputs
                       if (_useStandardMode) {
-                        // Standard mode
+                        if (_workController.text.isEmpty || _breakController.text.isEmpty || _sessionController.text.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text("Please fill in all fields"),
+                            backgroundColor: Colors.red,
+                          ));
+                          return;
+                        }
+                      } else {
+                        // Make sure custom sessions have valid values
+                        for (int i = 0; i < _sessionControllers.length; i++) {
+                          if (_sessionControllers[i].text.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text("Please fill in all session durations"),
+                              backgroundColor: Colors.red,
+                            ));
+                            return;
+                          }
+                        }
+                        
+                        for (int i = 0; i < _breakControllers.length; i++) {
+                          if (_breakControllers[i].text.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text("Please fill in all break durations"),
+                              backgroundColor: Colors.red,
+                            ));
+                            return;
+                          }
+                        }
+                      }
+                      
+                      // Create session configurations for Firestore
+                      Map<String, dynamic> config;
+                      if (_useStandardMode) {
+                        // Standard mode config
+                        config = {
+                          'standardConfig': {
+                            'workDuration': int.tryParse(_workController.text) ?? 25,
+                            'breakDuration': int.tryParse(_breakController.text) ?? 5,
+                            'sessionsPlanned': int.tryParse(_sessionController.text) ?? 4,
+                          }
+                        };
+                      } else {
+                        // Custom mode config - collect values from controllers
+                        List<int> sessionMinutes = [];
+                        List<int> breakMinutes = [];
+                        
+                        for (int i = 0; i < _sessionControllers.length; i++) {
+                          String sessionText = _sessionControllers[i].text;
+                          sessionMinutes.add(int.tryParse(sessionText) ?? 25);
+                        }
+                        
+                        for (int i = 0; i < _breakControllers.length; i++) {
+                          String breakText = _breakControllers[i].text;
+                          breakMinutes.add(int.tryParse(breakText) ?? 5);
+                        }
+                        
+                        config = {
+                          'customConfig': {
+                            'workDurations': sessionMinutes,
+                            'breakDurations': breakMinutes,
+                          }
+                        };
+                      }
+                      
+                      // Start a new session in Firestore
+                      String sessionId = await PomodoroSession.startSession(
+                        userEmail: userEmail ?? 'Guest User',
+                        isCustomMode: !_useStandardMode,
+                        config: config,
+                      );
+                      
+                      if (_useStandardMode) {
+                        // Standard mode navigation
                         Navigator.push(
                           context,
                           PageRouteBuilder(
@@ -413,6 +547,7 @@ class _HabitState extends State<Habit> {
                                   customMode: false,
                                   customSessionMinutes: [],
                                   customBreakMinutes: [],
+                                  sessionId: sessionId, // Pass sessionId to Timer
                                 ),
                               );
                             },
@@ -447,6 +582,7 @@ class _HabitState extends State<Habit> {
                                   customMode: true,
                                   customSessionMinutes: sessionMinutes,
                                   customBreakMinutes: breakMinutes,
+                                  sessionId: sessionId, // Pass sessionId to Timer
                                 ),
                               );
                             },
