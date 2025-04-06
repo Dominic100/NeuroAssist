@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:neuroassist/screens/NeurodiversityQuiz/neurodiversity_quiz.dart';
 import '../routes/route_names.dart';
 import 'package:neuroassist/screens/ToDo/todo_lists_screen.dart';
 
@@ -218,6 +219,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         context,
                         MaterialPageRoute(builder: (context) => TodoListsScreen()),
                       ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    _buildFeatureButton(
+                      context,
+                      icon: Icons.checklist,
+                      label: 'Neurodiversity Test',
+                      onPressed: () => Navigator.pushNamed(context, RouteNames.quiz),
                     ),
                   ],
                 ),

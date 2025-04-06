@@ -14,19 +14,19 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.2.2")
 
     // Fix the Play Core dependencies conflict
-    implementation("com.google.android.play:core:1.10.3") {
-        exclude(group = "com.google.android.play", module = "core-common")
-    }
+    // implementation("com.google.android.play:core:1.10.3") {
+    //     exclude(group = "com.google.android.play", module = "core-common")
+    // }
     
     // Add ML Kit dependencies
     implementation("com.google.mlkit:text-recognition:16.0.0")
     implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")
 
     // Add additional language text recognizers explicitly
-    implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
-    implementation("com.google.mlkit:text-recognition-devanagari:16.0.0")
-    implementation("com.google.mlkit:text-recognition-japanese:16.0.0")
-    implementation("com.google.mlkit:text-recognition-korean:16.0.0")
+    // implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
+    // implementation("com.google.mlkit:text-recognition-devanagari:16.0.0")
+    // implementation("com.google.mlkit:text-recognition-japanese:16.0.0")
+    // implementation("com.google.mlkit:text-recognition-korean:16.0.0")
 }
 
 android {
@@ -56,7 +56,7 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             
             // Disable R8 for troubleshooting
             isMinifyEnabled = false
@@ -65,12 +65,12 @@ android {
     }
 
     // Add this configuration to resolve the duplicate class issue
-    configurations.all {
-        resolutionStrategy {
-            // Force a specific version of the core-common library
-            force("com.google.android.play:core-common:2.0.3")
-        }
-    }
+    // configurations.all {
+    //     resolutionStrategy {
+    //         // Force a specific version of the core-common library
+    //         force("com.google.android.play:core-common:2.0.3")
+    //     }
+    // }
 }
 
 flutter {

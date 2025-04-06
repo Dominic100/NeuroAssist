@@ -7,6 +7,7 @@ import '../screens/settings_screen.dart';
 import '../screens/TTS_STT/tts_stt.dart';
 import '../screens/Pomodoro/habit.dart';
 import '../screens/Leaderboard/leaderboard_screen.dart';
+import '../screens/NeurodiversityQuiz/neurodiversity_quiz.dart';
 import 'route_names.dart';
 
 class AppRoutes {
@@ -19,5 +20,6 @@ class AppRoutes {
     RouteNames.ttsStt: (context) => TTSSTTHome(),
     RouteNames.habit: (context) => const Habit(),
     RouteNames.leaderboard: (context) => const LeaderboardScreen(),
+    RouteNames.quiz: (context) => const NeurodiversityQuizScreen(),
   };
 }
