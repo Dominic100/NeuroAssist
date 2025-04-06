@@ -8,6 +8,9 @@ import '../screens/TTS_STT/tts_stt.dart';
 import '../screens/Pomodoro/habit.dart';
 import '../screens/Leaderboard/leaderboard_screen.dart';
 import '../screens/NeurodiversityQuiz/neurodiversity_quiz.dart';
+import '../screens/DoctorAppointment/doc_home_screen.dart';
+import '../screens/Chatbot/chatbot_screen.dart';
+import '../screens/NumberLine/numberline_screen.dart';
 import 'route_names.dart';
 
 class AppRoutes {
@@ -21,5 +24,8 @@ class AppRoutes {
     RouteNames.habit: (context) => const Habit(),
     RouteNames.leaderboard: (context) => const LeaderboardScreen(),
     RouteNames.quiz: (context) => const NeurodiversityQuizScreen(),
+    RouteNames.docAppointment: (context) => const DocHomeScreen(),
+    RouteNames.chatbot: (context) => const ChatbotScreen(),
+    RouteNames.numberline: (context) => const NumberLineScreen(),
   };
 }

@@ -128,108 +128,139 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator(color: Colors.greenAccent))
-          : Center(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Welcome message with user email
-                    Container(
-                      padding: EdgeInsets.all(16),
-                      margin: EdgeInsets.only(bottom: 30),
-                      decoration: BoxDecoration(
-                        color: Colors.greenAccent.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            'Welcome,',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 18,
+          : SafeArea(
+              child: SingleChildScrollView(  // Added SingleChildScrollView for scrolling
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    children: [
+                      // Welcome message with user email
+                      Container(
+                        padding: EdgeInsets.all(16),
+                        margin: EdgeInsets.only(bottom: 30),
+                        decoration: BoxDecoration(
+                          color: Colors.greenAccent.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              'Welcome,',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 18,
+                              ),
                             ),
-                          ),
-                          SizedBox(height: 5),
-                          Text(
-                            displayEmail,
-                            style: TextStyle(
-                              color: Colors.greenAccent,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                            SizedBox(height: 5),
+                            Text(
+                              displayEmail,
+                              style: TextStyle(
+                                color: Colors.greenAccent,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    
-                    // Feature buttons
-                    _buildFeatureButton(
-                      context,
-                      icon: Icons.person,
-                      label: 'Profile',
-                      onPressed: () => Navigator.pushNamed(context, RouteNames.profile),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    _buildFeatureButton(
-                      context,
-                      icon: Icons.settings,
-                      label: 'Settings',
-                      onPressed: () => Navigator.pushNamed(context, RouteNames.settings),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    _buildFeatureButton(
-                      context,
-                      icon: Icons.record_voice_over,
-                      label: 'Text to Speech & Speech to Text',
-                      onPressed: () => Navigator.pushNamed(context, RouteNames.ttsStt),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    _buildFeatureButton(
-                      context,
-                      icon: Icons.timer,
-                      label: 'Pomodoro Timer',
-                      onPressed: () => Navigator.pushNamed(context, RouteNames.habit),
-                    ),
-
-                    const SizedBox(height: 16),
-                    
-                    _buildFeatureButton(
-                      context,
-                      icon: Icons.leaderboard,
-                      label: 'Leaderboards',
-                      onPressed: () => Navigator.pushNamed(context, RouteNames.leaderboard),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _buildFeatureButton(
-                      context,
-                      icon: Icons.checklist,
-                      label: 'To-Do Lists',
-                      onPressed: () => Navigator.push(
+                      
+                      // Feature buttons
+                      _buildFeatureButton(
                         context,
-                        MaterialPageRoute(builder: (context) => TodoListsScreen()),
+                        icon: Icons.person,
+                        label: 'Profile',
+                        onPressed: () => Navigator.pushNamed(context, RouteNames.profile),
                       ),
-                    ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      _buildFeatureButton(
+                        context,
+                        icon: Icons.settings,
+                        label: 'Settings',
+                        onPressed: () => Navigator.pushNamed(context, RouteNames.settings),
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      _buildFeatureButton(
+                        context,
+                        icon: Icons.record_voice_over,
+                        label: 'Text to Speech & Speech to Text',
+                        onPressed: () => Navigator.pushNamed(context, RouteNames.ttsStt),
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      _buildFeatureButton(
+                        context,
+                        icon: Icons.timer,
+                        label: 'Pomodoro Timer',
+                        onPressed: () => Navigator.pushNamed(context, RouteNames.habit),
+                      ),
 
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
+                      
+                      _buildFeatureButton(
+                        context,
+                        icon: Icons.leaderboard,
+                        label: 'Leaderboards',
+                        onPressed: () => Navigator.pushNamed(context, RouteNames.leaderboard),
+                      ),
 
-                    _buildFeatureButton(
-                      context,
-                      icon: Icons.checklist,
-                      label: 'Neurodiversity Test',
-                      onPressed: () => Navigator.pushNamed(context, RouteNames.quiz),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+
+                      _buildFeatureButton(
+                        context,
+                        icon: Icons.checklist,
+                        label: 'To-Do Lists',
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => TodoListsScreen()),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      _buildFeatureButton(
+                        context,
+                        icon: Icons.quiz,  // Changed icon to be more appropriate
+                        label: 'Neurodiversity Test',
+                        onPressed: () => Navigator.pushNamed(context, RouteNames.quiz),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      _buildFeatureButton(
+                        context,
+                        icon: Icons.medical_services,  // Changed to medical icon
+                        label: 'Doctor Appointment',
+                        onPressed: () => Navigator.pushNamed(context, RouteNames.docAppointment),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      _buildFeatureButton(
+                        context,
+                        icon: Icons.smart_toy,  // Changed to AI assistant icon
+                        label: 'AI Assistant',   // Changed from "Chatbot" to "AI Assistant"
+                        onPressed: () => Navigator.pushNamed(context, RouteNames.chatbot),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      _buildFeatureButton(
+                        context,
+                        icon: Icons.smart_toy,  // Changed to AI assistant icon
+                        label: 'Interactive Number Line',   // Changed from "Chatbot" to "AI Assistant"
+                        onPressed: () => Navigator.pushNamed(context, RouteNames.numberline),
+                      ),
+                      
+                      // Extra space at bottom for better scrolling
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -9,4 +9,7 @@ class RouteNames {
   static const String register = '/register';
   static const String leaderboard = '/leaderboard';
   static const String quiz = '/quiz';
+  static const String docAppointment = '/doc_appointment';
+  static const String chatbot = '/chatbot';
+  static const String numberline = '/numberline';
 }
